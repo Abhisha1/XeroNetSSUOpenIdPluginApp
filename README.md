@@ -1,20 +1,9 @@
-# Xero NetStandard OAuth 2.0 Starter App
-This is a companion app built with .NET Core 3.1 MVC to demonstrate Xero OAuth 2.0 Client Authentication & OAuth 2.0 APIs.
+# Xero NetStandard Sign Up With Xero Appp
+This is a sample app that has been built with the Xero NetStandard SDK to show how app partners build the Sign Up With Xero functionality Recommended flow.
 
-__IMPORTANT!__ This application is for demo only. We recommend setting up a secure token storage for your production app.
-
-Its functions include:
-
-- connect & reconnect to Xero
-- storing Xero token in a .json file
-- refresh Xero access token on expiry
-- allow user to switch between tenants/organisations
-- allow user to disconnect a tenant or revoke token
-- allow manual testing of many Xero API endpoints
-- display API call responses
-- display code snippets responsible for the call
-
-You can connect this companion app to an actual Xero organisation and make real API calls. Please use your Demo Company organisation for your testing. [Here](https://central.xero.com/s/article/Use-the-demo-company) is how to turn it on. 
+This sample app demonstrates how Xero can be used as an identity provider to create an account for your app. In order to run this application, users must have the following:
+- A Xero app created with the credentials ready to use. See [Create a Xero app](#create-a-xero-app)
+- A local instance of a MySQL Database running. See [Create a local database](#create-a-local-database)
 
 ### Create a Xero app
 You will need your Xero app credentials created to run this demo app.
@@ -35,9 +24,9 @@ To obtain your API keys, follow these steps:
 Clone this repo to your local drive or open with GitHub desktop client.
 
 ### Configure your API Keys
-In /NetStandardApp/appsettings.json, you should populate your XeroConfiguration as such: 
+In /XeroNetSSUApp/appsettings.json, you should populate your XeroConfiguration as such: 
 
-```
+```json
   "XeroConfiguration": {
     "ClientId": "YOUR_XERO_APP_CLIENT_ID",
     "ClientSecret": "YOUR_XERO_APP_CLIENT_SECRET",
@@ -49,8 +38,24 @@ In /NetStandardApp/appsettings.json, you should populate your XeroConfiguration 
 
 Note that you will have to have a state. The CallbackUri has to be exactly the same as redirect URI you put in Xero developer portal letter by letter. 
 
-Note that if Bankfeed and/or Finance API(s) is/are used with the example code, you must contact Xero via https://www.xero.com/uk/partner-programs/financialweb/contact/ for access request.
-If not, then just remove the finance API scopes from Scope variable in the json file.
+### Create a local database
+
+For the purpose of mocking an authentication system, the app spins up a local database called Test in which a database table called "User" is created. This table will contain all the users that will be registered using Xero as an identity provider.
+
+In order to create the database, we recommend using Microsoft Visual Studio.
+1. Load the sample application in Microsoft Visual Studio
+2. Open SQL Server Object Explorer. This should open in a left pane.
+3. If you have an existing SQL Server available, select the expand button on the server to reveal a Databases folder.
+4. Right click on the Databases folder. Click 'Add new Database'
+5. Add a name and click Ok to create the database.
+6. Once the database is created, right click on your newly created databases name and select properties.
+7. The properties should display in the bottom left pane. Scroll and find the connection string. If only a few properties didplay, right click again on the database name and click refresh and then click properties again until the connection string appears.
+8. Copy the connection string and replace in the appsettings.json as shown below:
+```json
+"ConnectionStrings": {
+        "Database": "Data Source=(localdb)\\ProjectsV13..."
+    }
+```
 
 ## Getting started with _dotnet_  & command line 
 You can run this application with [dotnet SDK](https://code.visualstudio.com/download) from command line. 
@@ -63,7 +68,7 @@ $ dotnet --version
 3.1.102
 ```
 ### Build the project
-Change directory to NetStandardApp directory where you can see XeroNetStandardApp.csproj, build the project by: 
+Change directory to XeroNetSSUApp directory where you can see XeroNetSSUApp.csproj, build the project by: 
 
 ```
 $ dotnet build
@@ -80,7 +85,7 @@ Build succeeded.
 Time Elapsed 00:00:02.22
 ```
 ### Run the project 
-In /NetStandardApp, run the project by:
+In /XeroNetSSUApp, run the project by:
 
 ```
 $ dotnet run
@@ -98,134 +103,13 @@ info: Microsoft.Hosting.Lifetime[0]
 ### Test the project
 Open your browser, type in https://localhost:5001
 
-## Getting started with Visual Studio Code
-You can also run it using an IDE such as [VS Code](https://code.visualstudio.com/download) with [C# extension](https://code.visualstudio.com/docs/languages/csharp) installed. 
- 
-### Install VS Code
-[Download](url) an install VS Code and open the project root folder with it. 
-
-![image](https://user-images.githubusercontent.com/41350731/76296821-ec176380-630a-11ea-8a61-5b6ba1336862.png)
-
-Go to Extensions, install C# extension by OmniSharp. 
-
-![image](https://user-images.githubusercontent.com/41350731/76296935-19fca800-630b-11ea-8684-916c78254618.png)
-
-### Build the project
-Go back to Explorer and press F5 (or go to _Debug_ > _Start Debugging_). It will ask you for environment for launch configuration. Select _.NET Core_.
-
-![image](https://user-images.githubusercontent.com/41350731/76297100-5d571680-630b-11ea-8ba2-c47105931ff4.png)
-
-Save the launch.json, then press F5 again to run.
-
-![image](https://user-images.githubusercontent.com/41350731/76299273-e3c12780-630e-11ea-9efc-c6460f0fb2ac.png)
-
-You should see following in the DEBUG CONSOLE and be directed to your default browser with https://localhost:5001 already open. 
-
-![image](https://user-images.githubusercontent.com/41350731/76297350-ca6aac00-630b-11ea-8cd3-05f098c3226a.png)
-
-Start your Testing. 
 
 ## Some explanation of the code
 
-**HomeController**
-- checks if there is a xerotoken.json, and 
-- passes a boolean firstTimeConnection to view to control the display of buttons. 
-
-**AuthorizationController**
-- reads XeroConfiguration &  make httpClientFactory available via dependency injection
-- on /Authorization/, redirects user to Xero OAuth for authentication & authorization
-- receives callback on /Authorization/Callback request Xero token
-- gets connected tenants (organisations)
-- store token via a public static method TokenUtilities.StoreToken(xeroToken);
-
-**AssetsInfoController**
-- makes API call to assets endpoint (Asset API)
-- displays all current Fixed Assets (GET)
-- allows for creation of Fixed Asset (PUT)
-
-**AuEmployeesInfoController**
-- makes API call to employees endpoint (PayrollAu API)
-- displays all current AU employees (GET)
-- allows for creation of a new Employee (PUT)
-
-**BankfeedConnectionsController**
-- makes API call to feed connections endpoint (BankFeeds API)
-- displays all current feed connections (GET), allows for deletion (POST)
-- allows for creation of new feed connection (PUT)
-
-**BankfeedStatementsController**
-- makes API call to statements endpoint (BankFeeds API)
-- displays all current statements (GET)
-- allows for creation of new statement (PUT)
-
-**BankTransactionsInfoController**
-- makes API call to bank transactions endpoint (Accounting API)
-- displays all current bank transactions (GET)
-
-**ContactInfoController** 
-- makes api call to contacts endpoint
-- displays in view
-- static view Create.cshtml creates a web form and POST contact info to Create() action, and
-- makes an create operation to contacts endpoint 
-
-**IdentityInfoController**
-- gets the list of tenant connections
-- displays tenant information (GET /connections)
-- allows user to disconnect a specific tenant (DELETE /connections/{id})
-
-**InvoiceSyncController**
-- gets invoices in the last 7 days and displays them in view (GET /invoices)
-- allows user to upload attachments to a specific invoice (POST {id}/attachments)
-
-**NzEmployeesInfoController**
-- gets a list of employees in NZ Payroll (GET)
-- displays them in view
-- allows user to create new employees (POST)
-
-**OrganisationInfoController**
-- gets the current organisation information (GET)
-- displays in view
-
-**ProjectInfoController**
-- gets the list of projects in Xero projects (GET)
-- displays in view
-
-**PurchaseOrderSyncController**
-- gets a list of purchase orders (GET)
-- displays in view
-- allows user to create a new purchase order (POST)
-
-**UkEmployeeInfoController**
-- gets a list of employees in Uk Payroll (GET)
-- displays them in view
-- allows user to create new employees (POST)
-
-**FilesSyncController**
-- makes API call to files endpoint (Files API)
-- displays all current files (GET)
-- allows for upload of new files (POST)
-- can modify existing files (GET /FilesSync/{fileId})
-- can delete existing files (PUT)
-
-**FoldersSyncController**
-- makes API call to folders endpoint (Files API)
-- displays all current folders (GET)
-- allows user to create new folders (POST)
-- can modify existing folders (GET /FoldersSync/{folderId})
-- can delete existing folders (PUT)
-
-**AssociationsSyncController**
-- makes API call to associations endpoint (Files API)
-- displays all current associations (GET)
-- allows user to create new associations (POST)
-- can delete existing folders (PUT)
-
-Xero token is stored in a JSON file in the root of the project "./xerotoken.json". The app serialise and deserialise with the static class functions in /Utilities/TokenUtilities.cs. Most controllers will get and refresh token before calling API methods.
-
-## Cross Site Forgery Attack Example
-For demonstrating OAuth 2.0 [CSFR](https://auth0.com/docs/protocols/state-parameters) implementation, two static methods were created to handle local storage of current state (state.json): TokenUtilities.StoreState(string state) and TokenUtilities.GetCurrentState(). 
-
-In AuthenticationController, on construction it generates a random GUID string as state. The Index() will store the state to state.json, then be retrieved on Callback(). If state does not match, the controller returns a warning "Cross site forgery attack detected!" instead of carrying forward the token request flow.
+### Authorization Controller
+#### Signing up
+The Authorization Controller handles the logic of using Xero as an identity provider. Once the user selects the connect to Xero option, they are redirected to the callback URI. This initiates a connection to Xero via the standard OAuth 2.0 flow. Once the user authorises the connection, the sample app receives tokens that can be used to access the Xero API and identity details. As we want to use Xero to 
+create an account, we use decode and parse the ID token returned to extract out user information (name, email, Xero user ID) which is then fed directly into the sample app's registration process (creating a user in the local mySQL database).
 
 ## License
 
