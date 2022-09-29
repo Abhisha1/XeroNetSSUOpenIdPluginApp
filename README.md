@@ -1,4 +1,4 @@
-# Xero NetStandard Sign Up With Xero Appp
+# Xero NetStandard Sign Up With Xero App
 This is a sample app that has been built with the Xero NetStandard SDK to show how app partners build the Sign Up With Xero functionality Recommended flow.
 
 This sample app demonstrates how Xero can be used as an identity provider to create an account for your app. In order to run this application, users must have the following:
