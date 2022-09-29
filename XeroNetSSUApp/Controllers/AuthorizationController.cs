@@ -1,19 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Xero.NetStandard.OAuth2.Client;
-using Xero.NetStandard.OAuth2.Config;
-using Xero.NetStandard.OAuth2.Token;
 using Microsoft.Extensions.Options;
 using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Xero.NetStandard.OAuth2.Models;
-using System.Collections.Generic;
-using System.Linq;
-using Newtonsoft.Json.Linq;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Threading.Tasks;
+using Xero.NetStandard.OAuth2.Client;
+using Xero.NetStandard.OAuth2.Config;
+using Xero.NetStandard.OAuth2.Models;
+using Xero.NetStandard.OAuth2.Token;
 using XeroNetSSUApp.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace XeroNetStandardApp.Controllers
 {
@@ -87,11 +84,13 @@ namespace XeroNetStandardApp.Controllers
       }
 
       string accessToken = xeroToken.AccessToken;
-      Tenant xeroTenant = xeroToken.Tenants[0];
+      Tenant xeroTenant = xeroToken.Tenants.Find(tenant => tenant.TenantId == TokenUtilities.GetCurrentTenantId());
 
       await client.DeleteConnectionAsync(xeroToken, xeroTenant);
 
-      TokenUtilities.DestroyToken();
+      // Update the xero token to exclude removed tenant
+      xeroToken.Tenants.Remove(xeroTenant);
+      TokenUtilities.StoreToken(xeroToken);
 
       User user = GetUserFromIdToken(xeroToken.IdToken);
       DeleteAccount(user);
@@ -124,10 +123,6 @@ namespace XeroNetStandardApp.Controllers
     private void Register(User user)
     {
       _context.Database.EnsureCreated();
-
-      _logger.LogInformation(user.FirstName.ToString());
-
-      _logger.LogInformation(user.ToString());
 
       if (_context.User.Find(user.XeroUserId) != null)
       {
