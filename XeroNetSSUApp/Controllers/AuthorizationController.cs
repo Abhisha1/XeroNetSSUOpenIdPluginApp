@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Xero.NetStandard.OAuth2.Client;
 using Xero.NetStandard.OAuth2.Config;
@@ -65,8 +69,9 @@ namespace XeroNetStandardApp.Controllers
       // Sends user info from xero to register a new user
       User user = GetUserFromIdToken(xeroToken.IdToken);
 
-      Register(user);
-      return RedirectToAction("Index", "OrganisationInfo");
+      RegisterUserToDb(user);
+      SignIn(user);
+      return RedirectToAction("Index", "Home");
     }
 
     // GET /Authorization/Disconnect
@@ -90,10 +95,23 @@ namespace XeroNetStandardApp.Controllers
 
       // Update the xero token to exclude removed tenant
       xeroToken.Tenants.Remove(xeroTenant);
-      TokenUtilities.StoreToken(xeroToken);
 
+      // If other tenants exist, set the next tenant as current tenant and update xero token to exclude deleted token. Otherwise destroy token
+      if (xeroToken.Tenants.Count > 0)
+      {
+        TokenUtilities.StoreToken(xeroToken);
+        TokenUtilities.StoreTenantId(xeroToken.Tenants[0].TenantId);
+      } else
+      {
+        TokenUtilities.DestroyToken();
+        SignOut();
+      }
+
+      // Deletes the users account
       User user = GetUserFromIdToken(xeroToken.IdToken);
       DeleteAccount(user);
+
+      
       return RedirectToAction("Index", "Home");
     }
 
@@ -115,12 +133,43 @@ namespace XeroNetStandardApp.Controllers
 
       TokenUtilities.DestroyToken();
 
+      SignOut();
+
       return RedirectToAction("Index", "Home");
     }
 
 
+    private async void SignIn(User user)
+    {
+      var claims = new List<Claim>
+{
+    new Claim(ClaimTypes.Name, user.Email),
+    new Claim("FullName", user.Name)
+};
+
+      var claimsIdentity = new ClaimsIdentity(
+          claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+      var authProperties = new AuthenticationProperties
+      {
+        ExpiresUtc = DateTime.Now.AddHours(1)
+      };
+
+      await HttpContext.SignInAsync(
+          CookieAuthenticationDefaults.AuthenticationScheme,
+          new ClaimsPrincipal(claimsIdentity),
+          authProperties);
+    }
+
+    private async void SignOut()
+    {
+      await HttpContext.SignOutAsync(
+    CookieAuthenticationDefaults.AuthenticationScheme);
+    }
+
+
     // Creates a user in the local database
-    private void Register(User user)
+    private void RegisterUserToDb(User user)
     {
       _context.Database.EnsureCreated();
 

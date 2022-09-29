@@ -22,7 +22,7 @@
         
         <ul class="navbar-nav ml-auto">
           
-        @if (Model == false) {
+        @if (Model == false && !User.Identity.IsAuthenticated) {
           <li class="nav-item">
               <a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Index">
                 <img src="~/images/connect-white.svg" alt="Sign up with Xero button" width="170">

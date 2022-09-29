@@ -1,12 +1,40 @@
 @model dynamic
 
 @{
-    ViewData["Title"] = "Home Page";
+  ViewData["Title"] = "Home Page";
 }
 
-<div>
-  <p style="text-align: center;">
-    Welcome to the Sign Up With Xero Sample App. 
-    This demonstrates how an app partner can use the recommended flow to create accounts using Xero.
-  </p>
-</div>
+
+@if (User.Identity.IsAuthenticated)
+{
+  <p style="text-align: center;">You have signed up with Xero!</p>
+
+  <h2>Organisation Info</h2>
+
+  <p>Name: @Model.Name</p>
+  <p>ID: @Model.OrganisationID</p>
+  <p>Type: @Model.OrganisationEntityType</p>
+  <p>Base Currency: @Model.BaseCurrency</p>
+
+  <br>
+  <p><b>Raw JSON Response:</b></p>
+  <textarea class="form-control" readonly style="height: 350px">
+    @ViewBag.jsonResponse;
+  </textarea>
+  <br>
+
+  <button class="btn btn-link" onclick="location.href='@Url.Action("Index", "Home")'">Home</button>
+  <br>
+  <br>
+  <br>
+}
+else
+{
+  <div>
+    <p style="text-align: center;">
+      Welcome to the Sign Up With Xero Sample App.
+      This demonstrates how an app partner can use the recommended flow to create accounts using Xero.
+    </p>
+  </div>
+  <p style="text-align: center;">Please sign up</p>
+}

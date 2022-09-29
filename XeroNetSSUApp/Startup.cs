@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Xero.NetStandard.OAuth2.Config;
 using Microsoft.AspNetCore.Session;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace XeroNetStandardApp
 {
@@ -28,6 +29,8 @@ namespace XeroNetStandardApp
     {
       services.AddControllersWithViews();
       services.Configure<XeroConfiguration>(Configuration.GetSection("XeroConfiguration"));
+      services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+        .AddCookie();
       services.AddHttpClient();
       services.AddDistributedMemoryCache();
       services.AddSession();
@@ -54,6 +57,7 @@ namespace XeroNetStandardApp
       app.UseRouting();
 
       app.UseAuthorization();
+      app.UseAuthentication();
 
       app.UseSession();
 
