@@ -1,7 +1,9 @@
 @model bool
 
-<nav class="navbar navbar-expand-md navbar-dark bg-dark">
-    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Sample App</a>
+<nav class="navbar navbar-expand-md navbar-dark">
+    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+    <img src="~/images/logoipsum-213.svg" alt="Logo"/>
+    </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".navbar-collapse" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
@@ -22,21 +24,15 @@
         
         <ul class="navbar-nav ml-auto">
           
-        @if (Model == false && !User.Identity.IsAuthenticated) {
+        @if (User.Identity.IsAuthenticated) {
           <li class="nav-item">
-              <a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Index">
-                <img src="~/images/connect-white.svg" alt="Sign up with Xero button" width="170">
-              </a>
-          </li>
-        } else {
-          <li class="nav-item">
-              <a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Index">Reconnect to Xero</a>
+              <a class="nav-link btn btn-outline-secondary active" role="button" aria-pressed="true" asp-area="" asp-controller="Authorization" asp-action="Index">Reconnect to Xero</a>
           </li>
           <li class="nav-item">
-              <a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Revoke">Revoke Xero Token</a>
+              <a class="nav-link btn btn-outline-secondary active" role="button" aria-pressed="true" asp-area="" asp-controller="Authorization" asp-action="Revoke">Revoke Xero Token</a>
           </li>
           <li class="nav-item">
-              <a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Disconnect">
+              <a class="nav-link" type="button" class="btn btn-outline-secondary" asp-area="" asp-controller="Authorization" asp-action="Disconnect">
                 <img src="~/images/disconnect-white.svg" alt="Disconnect to Xero button" width="170">
               </a>
           </li>

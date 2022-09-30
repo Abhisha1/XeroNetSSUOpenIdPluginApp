@@ -2,11 +2,53 @@
 for details on configuring this project to bundle and minify static web assets. */
 
 
+/* Styles for Home route*/
+.render-body {
+	background: #eaf4ff;
+}
+.home {
+	display: flex;
+	flex-direction: column;
+}
+
+.home-title {
+	text-align: center;
+}
+
+.home-auth-container {
+	border-radius: 0.5rem;
+	box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+	display: flex;
+	flex-direction: column;
+	height: 50vh;
+	padding: 2rem;
+	justify-content: center;
+	background-color: white;
+	width: 70%;
+	min-width: 500px;
+	display: flex;
+	place-self: center;
+}
+
+.home-auth-form-container {
+	width: 100%;
+	padding: 2em;
+	display: flex;
+	justify-content: space-evenly;
+	align-items: center;
+	flex-direction: row;
+}
+
+.home-explainer-text {
+	font-size: medium;
+	display: flex;
+}
+
 a.navbar-brand {
 	white-space: normal;
 	text-align: center;
 	word-break: break-all;
-  }
+}
   
 a.link-sidebar{
 	width: 100%;
@@ -106,7 +148,6 @@ a.link-sidebar:nth-child(even){
 }
 
 .render-body{
-	background-color: white;
 	padding: 10%;
 }
 
@@ -151,9 +192,6 @@ a.link-sidebar:nth-child(even){
 }
 
 footer {
-	background-color: #494d50;
-	color: white;
-
 	padding: 15px;
 	left: 0;
 	bottom: 0;

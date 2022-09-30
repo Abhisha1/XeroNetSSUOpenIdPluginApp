@@ -12,6 +12,7 @@ using Xero.NetStandard.OAuth2.Config;
 using Microsoft.AspNetCore.Session;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 
 namespace XeroNetStandardApp
 {
@@ -56,8 +57,8 @@ namespace XeroNetStandardApp
 
       app.UseRouting();
 
-      app.UseAuthorization();
       app.UseAuthentication();
+      app.UseAuthorization();
 
       app.UseSession();
 

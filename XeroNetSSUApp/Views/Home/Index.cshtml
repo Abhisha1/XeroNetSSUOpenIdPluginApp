@@ -1,4 +1,4 @@
-@model dynamic
+﻿@model dynamic
 
 @{
   ViewData["Title"] = "Home Page";
@@ -30,11 +30,19 @@
 }
 else
 {
-  <div>
-    <p style="text-align: center;">
+  <div class="home">
+       <h1 class="home-title">
       Welcome to the Sign Up With Xero Sample App.
-      This demonstrates how an app partner can use the recommended flow to create accounts using Xero.
-    </p>
+    </h1>
+  <div class="home-auth-container">
+      <div class="home-auth-form-container">
+          @*<a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Index" data-xero-sso data-label="Sign In with Xero"></a>*@
+          <a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Index" data-xero-sso data-label="Sign Up with Xero"></a>
+           <script src="https://edge.xero.com/platform/sso/xero-sso.js" async defer></script>
+        </div>
+        <div class="home-explainer-text">
+            This is a sample app that demos how to add Sign up with Xero capability to a sample app. If you're new here, click Sign Up With Xero to see how it works! 🎉
+        </div>
   </div>
-  <p style="text-align: center;">Please sign up</p>
+  </div>
 }
