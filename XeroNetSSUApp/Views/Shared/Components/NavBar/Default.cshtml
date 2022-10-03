@@ -26,10 +26,10 @@
           
         @if (User.Identity.IsAuthenticated) {
           <li class="nav-item">
-              <a class="nav-link btn btn-outline-secondary active" role="button" aria-pressed="true" asp-area="" asp-controller="Authorization" asp-action="Index">Reconnect to Xero</a>
+              <a class="custom-nav-btn btn btn-light" role="button" aria-pressed="true" asp-area="" asp-controller="Authorization" asp-action="Index">Reconnect to Xero</a>
           </li>
           <li class="nav-item">
-              <a class="nav-link btn btn-outline-secondary active" role="button" aria-pressed="true" asp-area="" asp-controller="Authorization" asp-action="Revoke">Revoke Xero Token</a>
+              <a class="custom-nav-btn btn btn-light" role="button" aria-pressed="true" asp-area="" asp-controller="Authorization" asp-action="Revoke">Revoke Xero Token</a>
           </li>
           <li class="nav-item">
               <a class="nav-link" type="button" class="btn btn-outline-secondary" asp-area="" asp-controller="Authorization" asp-action="Disconnect">

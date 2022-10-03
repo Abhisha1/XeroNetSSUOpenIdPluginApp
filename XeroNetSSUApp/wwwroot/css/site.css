@@ -15,6 +15,13 @@ for details on configuring this project to bundle and minify static web assets. 
 	text-align: center;
 }
 
+.custom-nav-btn {
+	color: #157899;
+	background-color: #f4f4f4;
+	padding: 0.5rem 1rem;
+	margin-right: 1rem;
+}
+
 .home-auth-container {
 	border-radius: 0.5rem;
 	box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);

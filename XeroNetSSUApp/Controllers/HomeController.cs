@@ -56,10 +56,9 @@ namespace XeroNetStandardApp.Controllers
         var response = await AccountingApi.GetOrganisationsAsync(accessToken, xeroTenantId);
         var organisation_info = new Organisation();
 
-        organisation_info = response._Organisations[0];
-        ViewBag.jsonResponse = response.ToJson();
+        ViewBag.jsonResponse = response._Organisations;
 
-        return View(organisation_info);
+        return View(response._Organisations);
       }
 
       return View();

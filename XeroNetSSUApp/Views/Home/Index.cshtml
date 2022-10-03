@@ -9,13 +9,27 @@
 {
   <p style="text-align: center;">You have signed up with Xero!</p>
 
-  <h2>Organisation Info</h2>
-
-  <p>Name: @Model.Name</p>
-  <p>ID: @Model.OrganisationID</p>
-  <p>Type: @Model.OrganisationEntityType</p>
-  <p>Base Currency: @Model.BaseCurrency</p>
-
+  <h2>Organisations</h2>
+  <table class="table table-bordered">
+       <thead>
+    <tr>
+      <th scope="col">Name</th>
+      <th scope="col">ID</th>
+      <th scope="col">Entity Type</th>
+      <th scope="col">Base Currency</th>
+    </tr>
+  </thead>
+  <tbody>
+      @foreach (var org in Model)
+      {
+        <tr>
+      <th scope="row">@org.Name</th>
+      <td>@org.OrganisationID</td>
+      <td>@org.OrganisationEntityType</td>
+      <td>@org.BaseCurrency</td>
+    </tr>
+      }
+      </table>
   <br>
   <p><b>Raw JSON Response:</b></p>
   <textarea class="form-control" readonly style="height: 350px">
