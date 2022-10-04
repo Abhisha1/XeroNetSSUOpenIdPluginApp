@@ -15,6 +15,7 @@ using Xero.NetStandard.OAuth2.Config;
 using Xero.NetStandard.OAuth2.Models;
 using Xero.NetStandard.OAuth2.Token;
 using XeroNetSSUApp.Models;
+using static XeroNetSSUApp.Models.User;
 
 namespace XeroNetStandardApp.Controllers
 {
@@ -45,6 +46,7 @@ namespace XeroNetStandardApp.Controllers
     // GET /Authorization/Callback
     public async Task<ActionResult> Callback(string code, string state)
     {
+      _logger.LogInformation(code);
       var clientState = TokenUtilities.GetCurrentState();
 
       if (state != clientState) {
@@ -105,12 +107,10 @@ namespace XeroNetStandardApp.Controllers
       {
         TokenUtilities.DestroyToken();
         SignOut();
+        // Disconnects xero connection from  the users account
+        User user = GetUserFromIdToken(xeroToken.IdToken);
+        DisconnectAccountFromXero(user);
       }
-
-      // Deletes the users account
-      User user = GetUserFromIdToken(xeroToken.IdToken);
-      DeleteAccount(user);
-
       
       return RedirectToAction("Index", "Home");
     }
@@ -134,6 +134,10 @@ namespace XeroNetStandardApp.Controllers
       TokenUtilities.DestroyToken();
 
       SignOut();
+
+      // Disconnects xero connection from  the users account
+      User user = GetUserFromIdToken(xeroToken.IdToken);
+      DisconnectAccountFromXero(user);
 
       return RedirectToAction("Index", "Home");
     }
@@ -186,6 +190,36 @@ namespace XeroNetStandardApp.Controllers
       _context.SaveChanges();
     }
 
+    // Creates a user in the local database
+    private bool UserExists(User user)
+    {
+      _context.Database.EnsureCreated();
+
+      if (_context.User.Find(user.XeroUserId) != null)
+      {
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+
+    // Disconnect user's account from Xero 
+    private void DisconnectAccountFromXero(User user)
+    {
+      _context.Database.EnsureCreated();
+
+      if (_context.User.Find(user.XeroUserId) != null)
+      {
+        var existingUser = _context.Find<User>(user.XeroUserId);
+        user.Status = StatusEnum.NotLinkedToXero;
+        _context.Entry(existingUser).CurrentValues.SetValues(user);
+        _context.Entry(existingUser).State = EntityState.Modified;
+      }
+      _context.SaveChanges();
+    }
+
     // Delete account for user in the local database
     private void DeleteAccount(User user)
     {
@@ -213,6 +247,7 @@ namespace XeroNetStandardApp.Controllers
         Name = token.Claims.First(claim => claim.Type == "name").Value,
         FirstName = token.Claims.First(claim => claim.Type == "given_name").Value,
         LastName = token.Claims.First(claim => claim.Type == "family_name").Value,
+        Status = StatusEnum.LinkedToXero
       };
     }
   }

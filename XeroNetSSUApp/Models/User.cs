@@ -18,5 +18,14 @@ namespace XeroNetSSUApp.Models
     public string XeroUserId { get; set; }
 
     public string SessionId { get; set; }
+
+    public enum StatusEnum
+    {
+      LinkedToXero = 1,
+
+      NotLinkedToXero = 2,
+    }
+
+    public StatusEnum Status { get; set; } 
   }
 }

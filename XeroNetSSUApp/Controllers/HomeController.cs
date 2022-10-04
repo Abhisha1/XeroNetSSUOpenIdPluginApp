@@ -11,6 +11,7 @@ using Xero.NetStandard.OAuth2.Token;
 using Xero.NetStandard.OAuth2.Model.Accounting;
 using XeroNetStandardApp.Models;
 using System.Linq;
+using XeroNetSSUApp.Models;
 
 namespace XeroNetStandardApp.Controllers
 {
@@ -24,7 +25,7 @@ namespace XeroNetStandardApp.Controllers
       _logger = logger;
       this.XeroConfig = XeroConfig;
     } 
-    public async Task<IActionResult> IndexAsync()
+    public async Task<IActionResult> IndexAsync([FromQuery] Guid? tenantId)
     {
       if (User.Identity.IsAuthenticated)
       {
@@ -39,11 +40,17 @@ namespace XeroNetStandardApp.Controllers
         }
 
         string accessToken = xeroToken.AccessToken;
-        Guid tenantId = TokenUtilities.GetCurrentTenantId();
-        string xeroTenantId;
-        if (xeroToken.Tenants.Any((t) => t.TenantId == tenantId))
+        if (tenantId is Guid tenantIdValue)
         {
-          xeroTenantId = tenantId.ToString();
+          TokenUtilities.StoreTenantId(tenantIdValue);
+        } else
+        {
+          tenantIdValue = TokenUtilities.GetCurrentTenantId();
+        }
+        string xeroTenantId;
+        if (xeroToken.Tenants.Any((t) => t.TenantId == tenantIdValue))
+        {
+          xeroTenantId = tenantIdValue.ToString();
         }
         else
         {
@@ -53,12 +60,15 @@ namespace XeroNetStandardApp.Controllers
         }
 
         var AccountingApi = new AccountingApi();
-        var response = await AccountingApi.GetOrganisationsAsync(accessToken, xeroTenantId);
-        var organisation_info = new Organisation();
+        var organisation_info = await AccountingApi.GetOrganisationsAsync(accessToken, xeroTenantId);
 
-        ViewBag.jsonResponse = response._Organisations;
+        var accounts = await AccountingApi.GetAccountsAsync(accessToken, xeroTenantId);
 
-        return View(response._Organisations);
+        var contacts = await AccountingApi.GetContactsAsync(accessToken, xeroTenantId);
+
+        var response = new DashboardModel { accounts = accounts, contacts = contacts, organisation = organisation_info };
+
+        return View(response);
       }
 
       return View();

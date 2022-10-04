@@ -3,12 +3,73 @@ for details on configuring this project to bundle and minify static web assets. 
 
 
 /* Styles for Home route*/
+
+/* width */
+.info-container ::-webkit-scrollbar {
+	width: 10px;
+}
+
+/* Track */
+.info-container ::-webkit-scrollbar-track {
+	background: #007bff;
+}
+
+.right-info-container ::-webkit-scrollbar-track {
+	background: white;
+}
+
+/* Handle */
+.left-info-container ::-webkit-scrollbar-thumb {
+	background: white;
+}
+
+.right-info-container ::-webkit-scrollbar-thumb {
+	background: #007bff;
+}
+
+/* Handle on hover */
+.info-container ::-webkit-scrollbar-thumb:hover {
+	background: #555;
+}
+
+
 .render-body {
 	background: #eaf4ff;
 }
 .home {
 	display: flex;
 	flex-direction: column;
+}
+
+.info-container {
+	display: flex;
+	flex-direction: row;
+	/* padding: 0.2em 1em; */
+	justify-content: space-between;
+	margin-top: 1rem;
+}
+
+.left-info-container {
+	width: 48%;
+	border-radius: 0.3rem;
+	height: 60vh;
+	background-color: white;
+	border-radius: 0.3rem;
+	box-shadow: 0 3px 10px rgb(0 0 0 / 20%);
+}
+
+.right-info-container {
+	width: 48%;
+	border-radius: 0.3rem;
+	height: 60vh;
+	background-color: white;
+	border-radius: 0.3rem;
+	box-shadow: 0 3px 10px rgb(0 0 0 / 20%);
+}
+
+.list-group {
+	height: 100%;
+	overflow-y: scroll;
 }
 
 .home-title {
@@ -22,15 +83,20 @@ for details on configuring this project to bundle and minify static web assets. 
 	margin-right: 1rem;
 }
 
-.home-auth-container {
+
+.organisation-table-container, .home-auth-container {
 	border-radius: 0.5rem;
 	box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
 	display: flex;
+	background-color: white;
+}
+
+
+.home-auth-container {
 	flex-direction: column;
 	height: 50vh;
 	padding: 2rem;
 	justify-content: center;
-	background-color: white;
 	width: 70%;
 	min-width: 500px;
 	display: flex;
@@ -167,7 +233,7 @@ a.link-sidebar:nth-child(even){
 }
 
 .sidebar-title{
-	widows: 100%;
+	width: 100%;
 	padding: 5px;
 	color: #7e868a;
 	background-color: #494d50;
