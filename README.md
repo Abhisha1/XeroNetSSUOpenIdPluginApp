@@ -1,9 +1,17 @@
 # Xero NetStandard Sign Up With Xero App
-This is a sample app that has been built with the Xero NetStandard SDK to show how app partners build the Sign Up With Xero functionality Recommended flow.
+This is a sample app that has been built with the Xero NetStandard SDK to show how app partners build the Sign Up With Xero Recommended flow.
 
 This sample app demonstrates how Xero can be used as an identity provider to create an account for your app. In order to run this application, users must have the following:
 - A Xero app created with the credentials ready to use. See [Create a Xero app](#create-a-xero-app)
 - A local instance of a MySQL Database running. See [Create a local database](#create-a-local-database)
+
+## What is Sign Up With Xero Recommended Flow?
+Xero can be used as an identity provider. This is where a user can use their Xero account to sign up to another service. 
+App partners are required to implement the sign up with xero as part of their certification, and this demo shows a sample of how an app
+may use Xero to create an account. 
+
+For more information about this process, refer to the [Sign Up with Xero blog post](https://developer.xero.com/documentation/xero-app-store/app-partner-guides/sign-up/) or the awesome [Sign Up with Xero explainer](https://www.google.com/url?q=https://www.youtube.com/watch?v%3DpFGHti5Y17Q%26t%3D2s%26ab_channel%3DXeroDeveloper&sa=D&source=docs&ust=1664933858033865&usg=AOvVaw3V1VrIUyyRpdPc8LgtN4xH) video Lee has created.
+
 
 ### Create a Xero app
 You will need your Xero app credentials created to run this demo app.

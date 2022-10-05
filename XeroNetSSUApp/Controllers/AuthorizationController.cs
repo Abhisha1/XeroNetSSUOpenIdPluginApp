@@ -46,7 +46,6 @@ namespace XeroNetStandardApp.Controllers
     // GET /Authorization/Callback
     public async Task<ActionResult> Callback(string code, string state)
     {
-      _logger.LogInformation(code);
       var clientState = TokenUtilities.GetCurrentState();
 
       if (state != clientState) {
