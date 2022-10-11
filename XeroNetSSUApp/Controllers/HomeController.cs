@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading.Tasks;
 using Xero.NetStandard.OAuth2.Api;
@@ -28,19 +31,25 @@ namespace XeroNetStandardApp.Controllers
     {
       if (User.Identity.IsAuthenticated)
       {
+        var client = new XeroClient(XeroConfig.Value);
 
-        // Get token and refresh if expired
-        var xeroToken = TokenUtilities.GetStoredToken();
-        var utcTimeNow = DateTime.UtcNow;
+        var handler = new JwtSecurityTokenHandler();
+        var accessToken = await HttpContext.GetTokenAsync("access_token");
+        var accessTokenParsed = handler.ReadJwtToken(await HttpContext.GetTokenAsync("access_token"));
+        var xeroToken = new XeroOAuth2Token()
+        {
+          AccessToken = accessToken,
+          IdToken = await HttpContext.GetTokenAsync("id_token"),
+          ExpiresAtUtc = accessTokenParsed.ValidTo,
+          RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
+        };
 
-        if (utcTimeNow > xeroToken.ExpiresAtUtc)
+        xeroToken.Tenants = await client.GetConnectionsAsync(xeroToken);
+
+        if (DateTime.UtcNow > xeroToken.ExpiresAtUtc)
         {
           xeroToken = await updateToken(xeroToken);
         }
-
-        // Set tenantId to a valid tenantId that has been parsed in the URL
-        // or set as first tenant in the list of connections
-        string accessToken = xeroToken.AccessToken;
         if (tenantId is Guid tenantIdValue)
         {
           TokenUtilities.StoreTenantId(tenantIdValue);
@@ -66,9 +75,10 @@ namespace XeroNetStandardApp.Controllers
         {
           var organisation_info = await AccountingApi.GetOrganisationsAsync(accessToken, xeroTenantId);
 
+          var contacts = await AccountingApi.GetContactsAsync(accessToken, xeroTenantId);
+
           var accounts = await AccountingApi.GetAccountsAsync(accessToken, xeroTenantId);
 
-          var contacts = await AccountingApi.GetContactsAsync(accessToken, xeroTenantId);
           
           var response = new DashboardModel { accounts = accounts, contacts = contacts, organisation = organisation_info };
 
@@ -94,6 +104,26 @@ namespace XeroNetStandardApp.Controllers
       xeroToken = (XeroOAuth2Token)await client.RefreshAccessTokenAsync(xeroToken);
       TokenUtilities.StoreToken(xeroToken);
       return xeroToken;
+    }
+    [HttpGet]
+    [Authorize]
+    public IActionResult NoTenants()
+    {
+      return View();
+    }
+
+    [HttpGet]
+    [Authorize(AuthenticationSchemes = "XeroSignUp")]
+    public IActionResult SignUp()
+    {
+      return RedirectToAction("Index");
+    }
+
+    [HttpGet]
+    [Authorize(AuthenticationSchemes = "XeroSignIn")]
+    public IActionResult SignIn()
+    {
+      return RedirectToAction("Index");
     }
 
     public IActionResult Privacy()

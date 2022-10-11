@@ -67,9 +67,12 @@ else
     </h1>
   <div class="home-auth-container">
       <div class="home-auth-form-container">
+          <span data-xero-sso data-href="/home/signin" data-label="Sign in with Xero"></span>
+    <span data-xero-sso data-href="/home/signup" data-label="Sign up with Xero"></span>
+    <script src="https://edge.xero.com/platform/sso/xero-sso.js"></script>
           @*<a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Index" data-xero-sso data-label="Sign In with Xero"></a>*@
-          <a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Index" data-xero-sso data-label="Sign Up with Xero"></a>
-           <script src="https://edge.xero.com/platform/sso/xero-sso.js" async defer></script>
+         @* <a class="nav-link" asp-area="" asp-controller="Authorization" asp-action="Index" data-xero-sso data-label="Sign Up with Xero"></a>
+           <script src="https://edge.xero.com/platform/sso/xero-sso.js" async defer></script>*@
         </div>
         <div class="home-explainer-text">
             This is a sample app that demos how to add Sign up with Xero capability to a sample app. If you're new here, click Sign Up With Xero to see how it works! 🎉

@@ -1,18 +1,21 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using Xero.NetStandard.OAuth2.Client;
 using Xero.NetStandard.OAuth2.Config;
-using Microsoft.AspNetCore.Session;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
 
 namespace XeroNetStandardApp
 {
@@ -28,11 +31,62 @@ namespace XeroNetStandardApp
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
+      services.AddHttpClient();
       services.AddControllersWithViews();
       services.Configure<XeroConfiguration>(Configuration.GetSection("XeroConfiguration"));
-      services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-        .AddCookie();
-      services.AddHttpClient();
+      services.AddAuthentication(options =>
+      {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = "XeroSignIn";
+      })
+            .AddCookie()
+            .AddOpenIdConnect("XeroSignIn", options =>
+            {
+              options.Authority = "https://identity.xero.com";
+              options.SaveTokens = true;
+
+              options.ClientId = Configuration["XeroConfiguration:ClientId"];
+              options.ClientSecret = Configuration["XeroConfiguration:ClientSecret"];
+
+              options.ResponseType = "code";
+
+              options.Scope.Clear();
+              foreach (var scope in Configuration["XeroConfiguration:Scope"].Split(" "))
+              {
+                options.Scope.Add(scope);
+              }
+
+              options.CallbackPath = "/signin-oidc";
+
+              options.Events = new OpenIdConnectEvents
+              {
+                OnTokenValidated = OnTokenValidated()
+              };
+            })
+            .AddOpenIdConnect("XeroSignUp", options =>
+            {
+              options.Authority = "https://identity.xero.com";
+              options.SaveTokens = true;
+
+              options.ClientId = Configuration["XeroConfiguration:ClientId"];
+              options.ClientSecret = Configuration["XeroConfiguration:ClientSecret"];
+
+              options.ResponseType = "code";
+
+              options.Scope.Clear();
+              foreach (var scope in Configuration["XeroConfiguration:Scope"].Split(" "))
+              {
+                options.Scope.Add(scope);
+              }
+
+              options.CallbackPath = "/signup-oidc";
+
+              options.Events = new OpenIdConnectEvents
+              {
+                OnTokenValidated = OnTokenValidated(),
+              };
+            });
+      
       services.AddDistributedMemoryCache();
       services.AddSession();
       services.AddDbContext<UserContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Database")));
@@ -52,13 +106,17 @@ namespace XeroNetStandardApp
         // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
         app.UseHsts();
       }
-      app.UseHttpsRedirection();
       app.UseStaticFiles();
 
       app.UseRouting();
-
+      app.UseCookiePolicy(new CookiePolicyOptions()
+      {
+        Secure = CookieSecurePolicy.Always
+      });
       app.UseAuthentication();
       app.UseAuthorization();
+      
+      app.UseHttpsRedirection();
 
       app.UseSession();
 
@@ -74,6 +132,38 @@ namespace XeroNetStandardApp
 
 
       app.UseMvc();
+    }
+
+    private static Func<TokenValidatedContext, Task> OnTokenValidated()
+    {
+      return async context =>
+      {
+
+        var b = context.TokenEndpointResponse;
+        var handler = new JwtSecurityTokenHandler();
+        var accessToken = handler.ReadJwtToken(context.TokenEndpointResponse.AccessToken);
+        var idToken = handler.ReadJwtToken(context.TokenEndpointResponse.IdToken);
+
+        var claims = new List<Claim>()
+        {
+          new Claim("XeroUserId", accessToken.Claims.First(Claim => Claim.Type == "xero_userid").Value),
+          new Claim("SessionId", accessToken.Claims.First(claim => claim.Type == "global_session_id").Value),
+          new Claim("Name", idToken.Claims.First(claim => claim.Type == "name").Value),
+          new Claim("FirstName", idToken.Claims.First(claim => claim.Type == "given_name").Value),
+          new Claim("LastName", idToken.Claims.First(claim => claim.Type == "family_name").Value),
+          new Claim ("Email", idToken.Claims.First(claim => claim.Type == "email").Value)
+        };
+        var claimsIdentity = new ClaimsIdentity(
+            claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await context.HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(claimsIdentity), new AuthenticationProperties()
+            {
+              ExpiresUtc = accessToken.ValidTo,
+            });
+        return;
+      };
     }
   }
 }
