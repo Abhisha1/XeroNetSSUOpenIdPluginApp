@@ -26,15 +26,18 @@
           
         @if (User.Identity.IsAuthenticated) {
           <li class="nav-item">
-              <a class="custom-nav-btn btn btn-light" role="button" aria-pressed="true" asp-area="" asp-controller="Authorization" asp-action="Index">Reconnect to Xero</a>
-          </li>
-          <li class="nav-item">
-              <a class="custom-nav-btn btn btn-light" role="button" aria-pressed="true" asp-area="" asp-controller="Authorization" asp-action="Revoke">Revoke Xero Token</a>
-          </li>
-          <li class="nav-item">
-              <a class="nav-link" type="button" class="btn btn-outline-secondary" asp-area="" asp-controller="Authorization" asp-action="Disconnect">
+              <a class="nav-link" type="button" class="btn btn-outline-secondary" asp-area="" asp-controller="Home" asp-action="Disconnect">
                 <img src="~/images/disconnect-white.svg" alt="Disconnect to Xero button" width="170">
               </a>
+          </li>
+          <li class="nav-item">
+              <a class="custom-nav-btn btn btn-light" role="button" aria-pressed="true" asp-area="" asp-controller="Home" asp-action="Reconnect">Reconnect to Xero</a>
+          </li>
+          <li class="nav-item">
+              <a class="custom-nav-btn btn btn-light" role="button" aria-pressed="true" asp-area="" asp-controller="Home" asp-action="Revoke">Revoke Xero Token</a>
+          </li>
+          <li class="nav-item">
+              <a class="custom-nav-btn btn btn-light" role="button" aria-pressed="true" asp-area="" asp-controller="Home" asp-action="SignOut">Sign out</a>
           </li>
         }
         </ul>

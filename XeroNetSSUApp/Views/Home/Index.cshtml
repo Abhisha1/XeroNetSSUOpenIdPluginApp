@@ -3,8 +3,6 @@
 @{
   ViewData["Title"] = "Home Page";
 }
-
-
 @if (User.Identity.IsAuthenticated)
 {
   <h2>Welcome 👋</h2>
@@ -56,6 +54,7 @@
     <span class="badge badge-primary badge-pill">@contact.DefaultCurrency</span>
   </li>
       }
+      </ul>
     </div>
       </div>
 }

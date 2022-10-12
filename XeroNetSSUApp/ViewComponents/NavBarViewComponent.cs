@@ -2,11 +2,20 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using Xero.NetStandard.OAuth2.Token;
+using XeroNetSSUApp.Utilities;
 
-namespace XeroNetStandardApp.ViewComponents{
+namespace XeroNetSSUApp.ViewComponents{
   public class NavBarViewComponent : ViewComponent
   {
+    private readonly StateContainer _stateContainer;
+
+    public NavBarViewComponent(StateContainer stateContainer)
+    {
+      _stateContainer = stateContainer;
+    }
     public class TenantDetails
     {
       public string TenantName { get; set; }
@@ -17,9 +26,9 @@ namespace XeroNetStandardApp.ViewComponents{
     {
       if (User.Identity.IsAuthenticated)
       {
-        var xeroToken = TokenUtilities.GetStoredToken();
+        XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
 
-        var tenantId = TokenUtilities.GetCurrentTenantId();
+        var tenantId = _stateContainer.CurrentTenant.TenantId;
         try
         {
           ViewBag.OrgPickerCurrentTenantId = tenantId;
@@ -33,7 +42,7 @@ namespace XeroNetStandardApp.ViewComponents{
         }
       }
 
-      return View(TokenUtilities.TokenExists());
+      return View(User.Identity.IsAuthenticated);
     }
 #pragma warning restore CS1998 // This async method lacks 'await' operators
   }

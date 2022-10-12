@@ -106,7 +106,7 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /Users/.../Xero-NetStandard-App/XeroNetStandardApp
+      Content root path: /Users/.../Xero-NetStandard-App/XeroNetSSUApp
 ```
 ### Test the project
 Open your browser, type in https://localhost:5001

@@ -11,73 +11,64 @@ using System.Threading.Tasks;
 using Xero.NetStandard.OAuth2.Api;
 using Xero.NetStandard.OAuth2.Client;
 using Xero.NetStandard.OAuth2.Config;
+using Xero.NetStandard.OAuth2.Models;
 using Xero.NetStandard.OAuth2.Token;
 using XeroNetSSUApp.Models;
-using XeroNetStandardApp.Models;
+using XeroNetSSUApp.Utilities;
 
-namespace XeroNetStandardApp.Controllers
+namespace XeroNetSSUApp.Controllers
 {
   public class HomeController : Controller
   {
     private readonly ILogger<HomeController> _logger;
     private readonly IOptions<XeroConfiguration> XeroConfig;
+    private readonly UserContext _context;
+    private readonly StateContainer _stateContainer;
 
-    public HomeController(IOptions<XeroConfiguration> XeroConfig, ILogger<HomeController> logger)
+
+    public HomeController(IOptions<XeroConfiguration> XeroConfig, ILogger<HomeController> logger, UserContext context, StateContainer stateContainer)
     {
       _logger = logger;
       this.XeroConfig = XeroConfig;
+      _context = context;
+      _stateContainer = stateContainer;
     } 
     public async Task<IActionResult> IndexAsync([FromQuery] Guid? tenantId)
     {
       if (User.Identity.IsAuthenticated)
       {
-        var client = new XeroClient(XeroConfig.Value);
-
-        var handler = new JwtSecurityTokenHandler();
         var accessToken = await HttpContext.GetTokenAsync("access_token");
-        var accessTokenParsed = handler.ReadJwtToken(await HttpContext.GetTokenAsync("access_token"));
-        var xeroToken = new XeroOAuth2Token()
-        {
-          AccessToken = accessToken,
-          IdToken = await HttpContext.GetTokenAsync("id_token"),
-          ExpiresAtUtc = accessTokenParsed.ValidTo,
-          RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
-        };
 
-        xeroToken.Tenants = await client.GetConnectionsAsync(xeroToken);
-
-        if (DateTime.UtcNow > xeroToken.ExpiresAtUtc)
-        {
-          xeroToken = await updateToken(xeroToken);
-        }
+        await RefreshToken();
+        XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
+        
+        Tenant xeroTenant;
         if (tenantId is Guid tenantIdValue)
         {
-          TokenUtilities.StoreTenantId(tenantIdValue);
+          if (xeroToken.Tenants.Any((t) => t.TenantId == tenantIdValue))
+          {
+            xeroTenant = xeroToken.Tenants.First((t) => t.TenantId == tenantIdValue);
+          }
+          else
+          {
+            xeroTenant = xeroToken.Tenants.First();
+          }
+          _stateContainer.CurrentTenant = xeroTenant;
         } else
         {
-          tenantIdValue = TokenUtilities.GetCurrentTenantId();
+          xeroTenant = _stateContainer.CurrentTenant;
         }
-        string xeroTenantId;
-        if (xeroToken.Tenants.Any((t) => t.TenantId == tenantIdValue))
-        {
-          xeroTenantId = tenantIdValue.ToString();
-        }
-        else
-        {
-          var id = xeroToken.Tenants.First().TenantId;
-          xeroTenantId = id.ToString();
-          TokenUtilities.StoreTenantId(id);
-        }
-
+       
+        
         // Make calls to Xero requesting organisation info, accounts and contacts and feed into dashboard
         var AccountingApi = new AccountingApi();
         try
         {
-          var organisation_info = await AccountingApi.GetOrganisationsAsync(accessToken, xeroTenantId);
+          var organisation_info = await AccountingApi.GetOrganisationsAsync(accessToken, xeroTenant.TenantId.ToString());
 
-          var contacts = await AccountingApi.GetContactsAsync(accessToken, xeroTenantId);
+          var contacts = await AccountingApi.GetContactsAsync(accessToken, xeroTenant.TenantId.ToString());
 
-          var accounts = await AccountingApi.GetAccountsAsync(accessToken, xeroTenantId);
+          var accounts = await AccountingApi.GetAccountsAsync(accessToken, xeroTenant.TenantId.ToString());
 
           
           var response = new DashboardModel { accounts = accounts, contacts = contacts, organisation = organisation_info };
@@ -97,14 +88,62 @@ namespace XeroNetStandardApp.Controllers
       return View();
     }
 
-    // Refreshes token and updates local token to contain updated version
-    private async Task<XeroOAuth2Token> updateToken(XeroOAuth2Token xeroToken) 
+    [HttpGet]
+    public async Task<ActionResult> Disconnect()
     {
       var client = new XeroClient(XeroConfig.Value);
-      xeroToken = (XeroOAuth2Token)await client.RefreshAccessTokenAsync(xeroToken);
-      TokenUtilities.StoreToken(xeroToken);
-      return xeroToken;
+      await RefreshToken();
+
+      XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
+
+      Tenant xeroTenant = _stateContainer.CurrentTenant;
+
+      await client.DeleteConnectionAsync(xeroToken, xeroTenant);
+
+      // Update the xero token to exclude removed tenant
+      xeroToken.Tenants.Remove(xeroTenant);
+
+      // If other tenants exist, set the next tenant as current tenant and update xero token to exclude deleted token. Otherwise destroy token
+      if (xeroToken.Tenants.Count > 0)
+      {
+        _stateContainer.XeroToken = xeroToken;
+        _stateContainer.CurrentTenant = xeroToken.Tenants[0];
+      }
+      else
+      {
+        return RedirectToAction("SignOut", "Home");
+      }
+
+      return RedirectToAction("Index", "Home");
     }
+
+    [HttpGet]
+    public async Task<ActionResult> Revoke()
+    {
+      var client = new XeroClient(XeroConfig.Value);
+
+      await RefreshToken();
+      XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
+
+      await client.RevokeAccessTokenAsync(xeroToken);
+
+      // Disconnects xero connection from  the users account
+      User user = DbUtilities.GetUserFromIdToken(xeroToken.IdToken);
+      DbUtilities.DisconnectAccountFromXero(user, _context);
+
+      return RedirectToAction("SignOut", "Home");
+    }
+
+    [HttpGet]
+    public async Task<ActionResult> Reconnect()
+    {
+      await HttpContext.SignOutAsync("Cookies");
+      await HttpContext.SignOutAsync("XeroSignIn");
+      await HttpContext.SignOutAsync("XeroSignUp");
+      return Redirect("/home/signin");
+    }
+
+
     [HttpGet]
     [Authorize]
     public IActionResult NoTenants()
@@ -114,17 +153,87 @@ namespace XeroNetStandardApp.Controllers
 
     [HttpGet]
     [Authorize(AuthenticationSchemes = "XeroSignUp")]
-    public IActionResult SignUp()
+    public async Task<IActionResult> SignUpAsync()
     {
+      await setTokenAsync();
+      User user = DbUtilities.GetUserFromIdToken(await HttpContext.GetTokenAsync("id_token"));
+      // Can customise login behaviour to indicate account created when user signed in for the first time
+      if (!DbUtilities.UserExists(user, _context))
+      {
+        DbUtilities.RegisterUserToDb(user, _context);
+      }
+      else
+      {
+        DbUtilities.UpdateUser(user, _context);
+      }
+      XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
+      _stateContainer.CurrentTenant = xeroToken.Tenants.First();
       return RedirectToAction("Index");
     }
 
     [HttpGet]
     [Authorize(AuthenticationSchemes = "XeroSignIn")]
-    public IActionResult SignIn()
+    public async Task<IActionResult> SignInAsync()
     {
+      await setTokenAsync();
+      User user = DbUtilities.GetUserFromIdToken(await HttpContext.GetTokenAsync("id_token"));
+      // Can customise login behaviour to indicate account created when user signed in for the first time
+      if (!DbUtilities.UserExists(user, _context))
+      {
+        DbUtilities.RegisterUserToDb(user, _context);
+      }
+      else
+      {
+        DbUtilities.UpdateUser(user, _context);
+      }
+      XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
+      _stateContainer.CurrentTenant = xeroToken.Tenants.First();
       return RedirectToAction("Index");
     }
+
+    private async Task setTokenAsync()
+    {
+      var client = new XeroClient(XeroConfig.Value);
+
+      var handler = new JwtSecurityTokenHandler();
+      var accessToken = await HttpContext.GetTokenAsync("access_token");
+      var accessTokenParsed = handler.ReadJwtToken(accessToken);
+
+      var xeroToken = new XeroOAuth2Token()
+      {
+        AccessToken = accessToken,
+        IdToken = await HttpContext.GetTokenAsync("id_token"),
+        ExpiresAtUtc = accessTokenParsed.ValidTo,
+        RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
+      };
+
+      xeroToken.Tenants = await client.GetConnectionsAsync(xeroToken);
+
+      _stateContainer.XeroToken = xeroToken;
+    }
+
+    private async Task RefreshToken()
+    {
+      var client = new XeroClient(XeroConfig.Value);
+      XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
+      var utcTimeNow = DateTime.UtcNow;
+
+      if (utcTimeNow > xeroToken.ExpiresAtUtc)
+      {
+        var newToken = await client.RefreshAccessTokenAsync(xeroToken);
+        _stateContainer.XeroToken = (XeroOAuth2Token)newToken;
+      }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> SignOut()
+    {
+      await HttpContext.SignOutAsync("Cookies");
+      await HttpContext.SignOutAsync("XeroSignIn");
+      await HttpContext.SignOutAsync("XeroSignUp");
+      return RedirectToAction("Index");
+    }
+
 
     public IActionResult Privacy()
     {

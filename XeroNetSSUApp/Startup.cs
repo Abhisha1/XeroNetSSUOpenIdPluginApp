@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,11 +14,14 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Xero.NetStandard.OAuth2.Client;
 using Xero.NetStandard.OAuth2.Config;
+using Xero.NetStandard.OAuth2.Token;
+using XeroNetSSUApp.Utilities;
 
-namespace XeroNetStandardApp
+namespace XeroNetSSUApp
 {
   public class Startup
   {
@@ -33,6 +37,8 @@ namespace XeroNetStandardApp
     {
       services.AddHttpClient();
       services.AddControllersWithViews();
+      services.AddDbContext<UserContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Database")));
+      services.AddSingleton<StateContainer>();
       services.Configure<XeroConfiguration>(Configuration.GetSection("XeroConfiguration"));
       services.AddAuthentication(options =>
       {
@@ -89,7 +95,6 @@ namespace XeroNetStandardApp
       
       services.AddDistributedMemoryCache();
       services.AddSession();
-      services.AddDbContext<UserContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Database")));
       services.AddMvc(options => options.EnableEndpointRouting = false);
     }
 
@@ -139,11 +144,11 @@ namespace XeroNetStandardApp
       return async context =>
       {
 
-        var b = context.TokenEndpointResponse;
         var handler = new JwtSecurityTokenHandler();
         var accessToken = handler.ReadJwtToken(context.TokenEndpointResponse.AccessToken);
         var idToken = handler.ReadJwtToken(context.TokenEndpointResponse.IdToken);
-
+        
+        // Custom cookie authentication
         var claims = new List<Claim>()
         {
           new Claim("XeroUserId", accessToken.Claims.First(Claim => Claim.Type == "xero_userid").Value),
@@ -151,10 +156,13 @@ namespace XeroNetStandardApp
           new Claim("Name", idToken.Claims.First(claim => claim.Type == "name").Value),
           new Claim("FirstName", idToken.Claims.First(claim => claim.Type == "given_name").Value),
           new Claim("LastName", idToken.Claims.First(claim => claim.Type == "family_name").Value),
-          new Claim ("Email", idToken.Claims.First(claim => claim.Type == "email").Value)
+          new Claim ("Email", idToken.Claims.First(claim => claim.Type == "email").Value),
         };
+
         var claimsIdentity = new ClaimsIdentity(
             claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+        context.Principal.AddIdentity(claimsIdentity);
 
         await context.HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
