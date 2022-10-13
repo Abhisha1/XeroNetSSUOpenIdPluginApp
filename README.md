@@ -1,4 +1,4 @@
-# Xero NetStandard Sign Up With Xero App
+# Xero NetStandard Sign Up With Xero App (and Sign In)
 This is a sample app that has been built with the Xero NetStandard SDK to show how app partners build the Sign Up With Xero Recommended flow. This particular app shows how a developer can build an application with .Net to support both *Sign Up with Xero and Sign In with Xero* capabilities. The sample app uses the Microsoft OpenId plugin to register separate authentication schemes for both sign in and sign up.
 
 In order to run this application, users must have the following:
