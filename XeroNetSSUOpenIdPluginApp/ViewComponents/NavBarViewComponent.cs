@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xero.NetStandard.OAuth2.Token;
-using XeroNetSSUApp.Utilities;
+using XeroNetSSUOpenIdPluginApp.Utilities;
 
-namespace XeroNetSSUApp.ViewComponents{
+namespace XeroNetSSUOpenIdPluginApp.ViewComponents{
   public class NavBarViewComponent : ViewComponent
   {
     private readonly StateContainer _stateContainer;

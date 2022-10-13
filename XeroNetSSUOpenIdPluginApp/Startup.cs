@@ -19,9 +19,9 @@ using System.Threading.Tasks;
 using Xero.NetStandard.OAuth2.Client;
 using Xero.NetStandard.OAuth2.Config;
 using Xero.NetStandard.OAuth2.Token;
-using XeroNetSSUApp.Utilities;
+using XeroNetSSUOpenIdPluginApp.Utilities;
 
-namespace XeroNetSSUApp
+namespace XeroNetSSUOpenIdPluginApp
 {
   public class Startup
   {

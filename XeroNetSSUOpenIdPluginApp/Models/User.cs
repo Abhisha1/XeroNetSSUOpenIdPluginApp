@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace XeroNetSSUApp.Models
+namespace XeroNetSSUOpenIdPluginApp.Models
 {
   public class User
   {

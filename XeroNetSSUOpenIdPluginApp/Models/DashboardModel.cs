@@ -1,6 +1,6 @@
 ﻿using Xero.NetStandard.OAuth2.Model.Accounting;
 
-namespace XeroNetSSUApp.Models
+namespace XeroNetSSUOpenIdPluginApp.Models
 {
   public class DashboardModel
   {

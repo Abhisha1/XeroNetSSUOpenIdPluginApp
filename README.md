@@ -1,7 +1,7 @@
 # Xero NetStandard Sign Up With Xero App
-This is a sample app that has been built with the Xero NetStandard SDK to show how app partners build the Sign Up With Xero Recommended flow.
+This is a sample app that has been built with the Xero NetStandard SDK to show how app partners build the Sign Up With Xero Recommended flow. This particular app shows how a developer can build an application with .Net to support both *Sign Up with Xero and Sign In with Xero* capabilities. The sample app uses the Microsoft OpenId plugin to register separate authentication schemes for both sign in and sign up.
 
-This sample app demonstrates how Xero can be used as an identity provider to create an account for your app. In order to run this application, users must have the following:
+In order to run this application, users must have the following:
 - A Xero app created with the credentials ready to use. See [Create a Xero app](#create-a-xero-app)
 - A local instance of a MySQL Database running. See [Create a local database](#create-a-local-database)
 
@@ -22,17 +22,20 @@ To obtain your API keys, follow these steps:
 * Login to [Xero developer center](https://developer.xero.com/myapps)
 * Click "New App" link
 * Enter your App name, company url, privacy policy url.
-* Enter the redirect URI (your callback url - i.e. `https://localhost:5001/Authorization/Callback`)
+* Enter the redirect URI (your callback url - i.e. `https://localhost:5001/signup-oidc`)
 * Agree to terms and condition and click "Create App".
+* Navigate to the configuration page and create another redirect URI (your callback url - i.e. `https://localhost:5001/signin-oidc`)
 * Click "Generate a secret" button.
 * Copy your client id and client secret and save for use later.
 * Click the "Save" button. You secret is now hidden.
+
+Note that we create two separate redirect URI's to represent the sign up and sign in actions respectively.
 
 ### Download the code
 Clone this repo to your local drive or open with GitHub desktop client.
 
 ### Configure your API Keys
-In /XeroNetSSUApp/appsettings.json, you should populate your XeroConfiguration as such: 
+In /XeroNetSSUOpenIdPluginApp/appsettings.json, you should populate your XeroConfiguration as such: 
 
 ```json
   "XeroConfiguration": {
@@ -76,7 +79,7 @@ $ dotnet --version
 3.1.102
 ```
 ### Build the project
-Change directory to XeroNetSSUApp directory where you can see XeroNetSSUApp.csproj, build the project by: 
+Change directory to XeroNetSSUOpenIdPluginApp directory where you can see XeroNetSSUOpenIdPluginApp.csproj, build the project by: 
 
 ```
 $ dotnet build
@@ -93,7 +96,7 @@ Build succeeded.
 Time Elapsed 00:00:02.22
 ```
 ### Run the project 
-In /XeroNetSSUApp, run the project by:
+In /XeroNetSSUOpenIdPluginApp, run the project by:
 
 ```
 $ dotnet run
@@ -106,7 +109,7 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Hosting environment: Development
 info: Microsoft.Hosting.Lifetime[0]
-      Content root path: /Users/.../Xero-NetStandard-App/XeroNetSSUApp
+      Content root path: /Users/.../Xero-NetStandard-App/XeroNetSSUOpenIdPluginApp
 ```
 ### Test the project
 Open your browser, type in https://localhost:5001
@@ -114,10 +117,89 @@ Open your browser, type in https://localhost:5001
 
 ## Some explanation of the code
 
-### Authorization Controller
-#### Signing up
-The Authorization Controller handles the logic of using Xero as an identity provider. Once the user selects the connect to Xero option, they are redirected to the callback URI. This initiates a connection to Xero via the standard OAuth 2.0 flow. Once the user authorises the connection, the sample app receives tokens that can be used to access the Xero API and identity details. As we want to use Xero to 
-create an account, we use decode and parse the ID token returned to extract out user information (name, email, Xero user ID) which is then fed directly into the sample app's registration process (creating a user in the local mySQL database).
+### Add Open Id authentication schemes
+```c#
+.AddOpenIdConnect("XeroSignIn", options =>
+{
+	options.Authority = "https://identity.xero.com";
+	options.SaveTokens = true;
+
+	options.ClientId = Configuration["XeroConfiguration:ClientId"];
+	options.ClientSecret = Configuration["XeroConfiguration:ClientSecret"];
+
+	options.ResponseType = "code";
+
+	options.Scope.Clear();
+	foreach (var scope in Configuration["XeroConfiguration:Scope"].Split(" "))
+	{
+	options.Scope.Add(scope);
+	}
+
+	options.CallbackPath = "/signin-oidc";
+
+	options.Events = new OpenIdConnectEvents
+	{
+	OnTokenValidated = OnTokenValidated()
+	};
+})
+```
+The code above shows how an open id authentication scheme is registered. The authority is set to point to the xero identity server which will prompt users to log in to their xero accounts when trying to sign in via the sample app. Setting save tokens to true ensures that the tokens are persisted and can be accessed within the application later.
+
+The client ID and secret correspond to your applications ID and secret.
+
+The response type specifies that the client would like authroization code returned to them upon authenticating.
+
+The scopes control what the user can access once they have authenticated. For example, adding the open id scope ensures that you can access profile information about the user, which is necessary for the app to create and store information about the user.
+
+The callback path is specified to point to the redirect URI that was supplied when configuring the application. This means that once the user hits the callback route, in this case `/signin-oidc`, the application should initiate the OAuth 2.0 code flow.
+
+```c#
+private static Func<TokenValidatedContext, Task> OnTokenValidated()
+    {
+      return async context =>
+      {
+
+        var handler = new JwtSecurityTokenHandler();
+        var accessToken = handler.ReadJwtToken(context.TokenEndpointResponse.AccessToken);
+        var idToken = handler.ReadJwtToken(context.TokenEndpointResponse.IdToken);
+        
+        // Custom cookie authentication
+        var claims = new List<Claim>()
+        {
+          new Claim("XeroUserId", accessToken.Claims.First(Claim => Claim.Type == "xero_userid").Value),
+        };
+		
+		...
+        await context.HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(claimsIdentity), new AuthenticationProperties()
+            {
+              ExpiresUtc = accessToken.ValidTo,
+            });
+        return;
+      };
+    }
+
+```
+
+The on token validated function is called and in the sample app, we implement basic cookie authentication. Here, the app extracts information about the user from the tokens returned from Xero, and this is then embedded into a new claim which is used to sign the user in using the cookie authentication scheme. 
+
+### User Model
+The user model represents key information that is stored in the local database. Attributes relating to the user's personal information, such as name, email, xero user id etc, are populated from the id_token.  There is an additional property called state which is used to represent whether a user's account is linked to Xero or not. Whilst this application only allows users to register via Xero, a real application may provide an alternate registration method that does not use Xero as an identity provider. 
+
+### State container
+As this is a simplified sample app, we have used a state container to encapsulate retaining the state information relating to:
+- current xero token (which is used to access the Xero API and obtain information about the user)
+- current tenant (the organisation's information which is being displayed)
+
+### Home Controller
+The controller which handles the data fetching using the provided access token, and render information about the user (organisations, contacts and accounts).
+
+### Revoking
+Revoking access refers to when the user removes their connections to the application. If the user had 3 organisations connected and then clicked revoke, all 3 organisations will no longer be connected. In the application, revoking also results in the user's account being unlinked from 
+Xero
+### Disconnect/Deleting connections
+Deleting a connection refers to when a user removes a single connection. If a user had 3 organisations connected and clicked delete connections, they would still have 2 connections remaining.
 
 ## License
 

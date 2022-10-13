@@ -13,10 +13,10 @@ using Xero.NetStandard.OAuth2.Client;
 using Xero.NetStandard.OAuth2.Config;
 using Xero.NetStandard.OAuth2.Models;
 using Xero.NetStandard.OAuth2.Token;
-using XeroNetSSUApp.Models;
-using XeroNetSSUApp.Utilities;
+using XeroNetSSUOpenIdPluginApp.Models;
+using XeroNetSSUOpenIdPluginApp.Utilities;
 
-namespace XeroNetSSUApp.Controllers
+namespace XeroNetSSUOpenIdPluginApp.Controllers
 {
   public class HomeController : Controller
   {

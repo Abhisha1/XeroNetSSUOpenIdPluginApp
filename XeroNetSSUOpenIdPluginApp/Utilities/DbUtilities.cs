@@ -2,9 +2,9 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
-using XeroNetSSUApp.Models;
+using XeroNetSSUOpenIdPluginApp.Models;
 
-namespace XeroNetSSUApp.Utilities
+namespace XeroNetSSUOpenIdPluginApp.Utilities
 {
   public class DbUtilities
   {

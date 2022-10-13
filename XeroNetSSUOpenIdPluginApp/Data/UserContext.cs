@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using XeroNetSSUApp.Models;
+using XeroNetSSUOpenIdPluginApp.Models;
 
 public class UserContext : DbContext
 {

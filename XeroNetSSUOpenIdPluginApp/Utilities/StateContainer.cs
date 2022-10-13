@@ -1,7 +1,7 @@
 ﻿using Xero.NetStandard.OAuth2.Models;
 using Xero.NetStandard.OAuth2.Token;
 
-namespace XeroNetSSUApp.Utilities
+namespace XeroNetSSUOpenIdPluginApp.Utilities
 {
   public class StateContainer
   {

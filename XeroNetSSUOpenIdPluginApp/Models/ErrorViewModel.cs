@@ -1,6 +1,6 @@
 using System;
 
-namespace XeroNetSSUApp.Models
+namespace XeroNetSSUOpenIdPluginApp.Models
 {
     public class ErrorViewModel
     {
