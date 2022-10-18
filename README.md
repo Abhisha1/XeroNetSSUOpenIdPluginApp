@@ -117,7 +117,21 @@ Open your browser, type in https://localhost:5001
 
 ## Some explanation of the code
 
-### Add Open Id authentication schemes
+### Startup.cs
+
+```c#
+services.AddDbContext<UserContext>(options => options.UseSqlServer(Configuration.GetConnectionString("Database")));
+```
+Within our `ConfigureServices()`, we add a database context. If you recall from earlier, you had to configure a local database and add the database connection string to the appsettings.json file. This database context allows our application to query from the database. We specify the UserContext as the type which is configured to create a table using our [User model](#user-model).
+
+```c#
+services.AddSingleton<StateContainer>();
+```
+
+As this is a simplified sample app, we have used a state container to encapsulate retaining the state information relating to:
+- current xero token (which is used to access the Xero API and obtain information about the user)
+- current tenant (the organisation's information which is being displayed)
+
 ```c#
 .AddOpenIdConnect("XeroSignIn", options =>
 {
@@ -184,16 +198,82 @@ private static Func<TokenValidatedContext, Task> OnTokenValidated()
 
 The on token validated function is called and in the sample app, we implement basic cookie authentication. Here, the app extracts information about the user from the tokens returned from Xero, and this is then embedded into a new claim which is used to sign the user in using the cookie authentication scheme. 
 
+```c#
+app.UseCookiePolicy(new CookiePolicyOptions()
+{
+  Secure = CookieSecurePolicy.Always
+});
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+Finally, within `Configure()`, we need to specify that we want to use Authentication and Authorization as defined in `ConfigureServices()`. We have also added a specification which enforces the cookie policy to always be secure. This is necessary to override a Chrome error that may occur as by default, Chrome blocks insecure cookies.
+
 ### User Model
 The user model represents key information that is stored in the local database. Attributes relating to the user's personal information, such as name, email, xero user id etc, are populated from the id_token.  There is an additional property called state which is used to represent whether a user's account is linked to Xero or not. Whilst this application only allows users to register via Xero, a real application may provide an alternate registration method that does not use Xero as an identity provider. 
 
-### State container
-As this is a simplified sample app, we have used a state container to encapsulate retaining the state information relating to:
-- current xero token (which is used to access the Xero API and obtain information about the user)
-- current tenant (the organisation's information which is being displayed)
 
 ### Home Controller
 The controller which handles the data fetching using the provided access token, and render information about the user (organisations, contacts and accounts).
+
+#### Sign Up
+When a user clicks the sign up button, they invoke the following
+
+```c#
+[HttpGet]
+[Authorize(AuthenticationSchemes = "XeroSignUp")]
+public async Task<IActionResult> SignUpAsync()
+{
+  await setTokenAsync();
+  User user = DbUtilities.GetUserFromIdToken(await HttpContext.GetTokenAsync("id_token"));
+  // Can customise login behaviour to indicate account created when user signed in for the first time
+  if (!DbUtilities.UserExists(user, _context))
+  {
+    DbUtilities.RegisterUserToDb(user, _context);
+  }
+  else
+  {
+    DbUtilities.UpdateUser(user, _context);
+  }
+  XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
+  _stateContainer.CurrentTenant = xeroToken.Tenants.First();
+  return RedirectToAction("Index");
+}
+```
+
+The Authorize attribute enforces that the user must be authenticated with the specified XeroSignUp scheme. As we've configured this using the OpenID plugin in our startup, the unauthenticated user will be redirected to the xero identity server and must log in. Once successful, the `SignUpAsync` function will execute. It first uses the access token returned from the identity server to construct a XeroOAuth2Token. 
+
+```c#
+private async Task setTokenAsync()
+{
+  var client = new XeroClient(XeroConfig.Value);
+
+  var handler = new JwtSecurityTokenHandler();
+  var accessToken = await HttpContext.GetTokenAsync("access_token");
+  var accessTokenParsed = handler.ReadJwtToken(accessToken);
+
+  var xeroToken = new XeroOAuth2Token()
+  {
+    AccessToken = accessToken,
+    IdToken = await HttpContext.GetTokenAsync("id_token"),
+    ExpiresAtUtc = accessTokenParsed.ValidTo,
+    RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
+  };
+
+  xeroToken.Tenants = await client.GetConnectionsAsync(xeroToken);
+
+  _stateContainer.XeroToken = xeroToken;
+}
+```
+
+We do this so that we can also save the tenants that are currently connected without repeatedly calling `GetConnectionsAsync()`. Once we retrieve the tenants and update the XeroToken, we save this to our stateContainer so we can use this value for subsequent calls to the SDK. 
+
+Once `setTokenAsync()` has finished executing, we can then create a user and add it to the local database if the user does not exist already. If they do, we update the database in case the details of the user changed. 
+
+Finally, we update the state container to hold the current tenant's id as the application fetches information based on the selected tenant. When completed, the controller redirects to the `Index()` action which fetches details about the tenant's accounts and contacts and renders on the Home page.
+
+#### Sign In
+The process for sign in the same as sign up except for the user clicks the sign in button and the `signInAsync()` function is invoked.
 
 ### Revoking
 Revoking access refers to when the user removes their connections to the application. If the user had 3 organisations connected and then clicked revoke, all 3 organisations will no longer be connected. In the application, revoking also results in the user's account being unlinked from 
