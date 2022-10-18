@@ -45,7 +45,11 @@ namespace XeroNetSSUOpenIdPluginApp
         options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = "XeroSignIn";
       })
-            .AddCookie()
+            .AddCookie(options => {
+              options.SlidingExpiration = true;
+              options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+              options.Cookie.MaxAge = options.ExpireTimeSpan;
+            })
             .AddOpenIdConnect("XeroSignIn", options =>
             {
               options.Authority = "https://identity.xero.com";
@@ -169,6 +173,7 @@ namespace XeroNetSSUOpenIdPluginApp
             new ClaimsPrincipal(claimsIdentity), new AuthenticationProperties()
             {
               ExpiresUtc = accessToken.ValidTo,
+              IsPersistent = true,
             });
         return;
       };
