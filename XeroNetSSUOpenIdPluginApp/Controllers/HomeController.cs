@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using System;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
@@ -37,29 +38,25 @@ namespace XeroNetSSUOpenIdPluginApp.Controllers
     {
       if (User.Identity.IsAuthenticated)
       {
-        var accessToken = await HttpContext.GetTokenAsync("access_token");
+        
 
         await RefreshToken();
         XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
+        var accessToken = xeroToken.AccessToken;
         
-        Tenant xeroTenant;
         if (tenantId is Guid tenantIdValue)
         {
           if (xeroToken.Tenants.Any((t) => t.TenantId == tenantIdValue))
           {
-            xeroTenant = xeroToken.Tenants.First((t) => t.TenantId == tenantIdValue);
+            _stateContainer.CurrentTenant = xeroToken.Tenants.First((t) => t.TenantId == tenantIdValue); ;
           }
-          else
-          {
-            xeroTenant = xeroToken.Tenants.First();
-          }
-          _stateContainer.CurrentTenant = xeroTenant;
-        } else
+        } if (_stateContainer.CurrentTenant == null)
         {
-          xeroTenant = _stateContainer.CurrentTenant;
+          _stateContainer.CurrentTenant = xeroToken.Tenants.First();
         }
-       
-        
+        Tenant xeroTenant = _stateContainer.CurrentTenant;
+
+
         // Make calls to Xero requesting organisation info, accounts and contacts and feed into dashboard
         var AccountingApi = new AccountingApi();
         try
@@ -69,8 +66,7 @@ namespace XeroNetSSUOpenIdPluginApp.Controllers
           var contacts = await AccountingApi.GetContactsAsync(accessToken, xeroTenant.TenantId.ToString());
 
           var accounts = await AccountingApi.GetAccountsAsync(accessToken, xeroTenant.TenantId.ToString());
-
-          
+                    
           var response = new DashboardModel { accounts = accounts, contacts = contacts, organisation = organisation_info };
 
           return View(response);
@@ -207,6 +203,12 @@ namespace XeroNetSSUOpenIdPluginApp.Controllers
         RefreshToken = await HttpContext.GetTokenAsync("refresh_token"),
       };
 
+      if (DateTime.UtcNow > xeroToken.ExpiresAtUtc)
+      {
+        var newToken = await client.RefreshAccessTokenAsync(xeroToken);
+        _stateContainer.XeroToken = (XeroOAuth2Token)newToken;
+      }
+
       xeroToken.Tenants = await client.GetConnectionsAsync(xeroToken);
 
       _stateContainer.XeroToken = xeroToken;
@@ -217,6 +219,12 @@ namespace XeroNetSSUOpenIdPluginApp.Controllers
       var client = new XeroClient(XeroConfig.Value);
       XeroOAuth2Token xeroToken = _stateContainer.XeroToken;
       var utcTimeNow = DateTime.UtcNow;
+
+      if (xeroToken == null)
+      {
+        await setTokenAsync();
+        xeroToken = _stateContainer.XeroToken;
+      }
 
       if (utcTimeNow > xeroToken.ExpiresAtUtc)
       {

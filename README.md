@@ -7,7 +7,7 @@ In order to run this application, users must have the following:
 
 ## What is Sign Up With Xero Recommended Flow?
 Xero can be used as an identity provider. This is where a user can use their Xero account to sign up to another service. 
-App partners are required to implement the sign up with xero as part of their certification, and this demo shows a sample of how an app
+App partners are required to implement the sign up with Xero as part of their certification, and this demo shows a sample of how an app
 may use Xero to create an account. 
 
 For more information about this process, refer to the [Sign Up with Xero blog post](https://developer.xero.com/documentation/xero-app-store/app-partner-guides/sign-up/) or the awesome [Sign Up with Xero explainer](https://www.google.com/url?q=https://www.youtube.com/watch?v%3DpFGHti5Y17Q%26t%3D2s%26ab_channel%3DXeroDeveloper&sa=D&source=docs&ust=1664933858033865&usg=AOvVaw3V1VrIUyyRpdPc8LgtN4xH) video Lee has created.
@@ -60,7 +60,7 @@ In order to create the database, we recommend using Microsoft Visual Studio.
 4. Right click on the Databases folder. Click 'Add new Database'
 5. Add a name and click Ok to create the database.
 6. Once the database is created, right click on your newly created databases name and select properties.
-7. The properties should display in the bottom left pane. Scroll and find the connection string. If only a few properties didplay, right click again on the database name and click refresh and then click properties again until the connection string appears.
+7. The properties should display in the bottom left pane. Scroll and find the connection string. If only a few properties display, right click again on the database name and click refresh and then click properties again until the connection string appears.
 8. Copy the connection string and replace in the appsettings.json as shown below:
 ```json
 "ConnectionStrings": {
@@ -129,7 +129,7 @@ services.AddSingleton<StateContainer>();
 ```
 
 As this is a simplified sample app, we have used a state container to encapsulate retaining the state information relating to:
-- current xero token (which is used to access the Xero API and obtain information about the user)
+- current Xero token (which is used to access the Xero API and obtain information about the user)
 - current tenant (the organisation's information which is being displayed)
 
 ```c#
@@ -157,11 +157,11 @@ As this is a simplified sample app, we have used a state container to encapsulat
 	};
 })
 ```
-The code above shows how an open id authentication scheme is registered. The authority is set to point to the xero identity server which will prompt users to log in to their xero accounts when trying to sign in via the sample app. Setting save tokens to true ensures that the tokens are persisted and can be accessed within the application later.
+The code above shows how an open id authentication scheme is registered. The authority is set to point to the Xero identity server which will prompt users to log in to their Xero accounts when trying to sign in via the sample app. Setting save tokens to true ensures that the tokens are persisted and can be accessed within the application later.
 
 The client ID and secret correspond to your applications ID and secret.
 
-The response type specifies that the client would like authroization code returned to them upon authenticating.
+The response type specifies that the client would like authorization code returned to them upon authenticating.
 
 The scopes control what the user can access once they have authenticated. For example, adding the open id scope ensures that you can access profile information about the user, which is necessary for the app to create and store information about the user.
 
@@ -210,7 +210,7 @@ app.UseAuthorization();
 Finally, within `Configure()`, we need to specify that we want to use Authentication and Authorization as defined in `ConfigureServices()`. We have also added a specification which enforces the cookie policy to always be secure. This is necessary to override a Chrome error that may occur as by default, Chrome blocks insecure cookies.
 
 ### User Model
-The user model represents key information that is stored in the local database. Attributes relating to the user's personal information, such as name, email, xero user id etc, are populated from the id_token.  There is an additional property called state which is used to represent whether a user's account is linked to Xero or not. Whilst this application only allows users to register via Xero, a real application may provide an alternate registration method that does not use Xero as an identity provider. 
+The user model represents key information that is stored in the local database. Attributes relating to the user's personal information, such as name, email, Xero user id etc, are populated from the id_token.  There is an additional property called state which is used to represent whether a user's account is linked to Xero or not. Whilst this application only allows users to register via Xero, a real application may provide an alternate registration method that does not use Xero as an identity provider. 
 
 
 ### Home Controller
@@ -241,7 +241,7 @@ public async Task<IActionResult> SignUpAsync()
 }
 ```
 
-The Authorize attribute enforces that the user must be authenticated with the specified XeroSignUp scheme. As we've configured this using the OpenID plugin in our startup, the unauthenticated user will be redirected to the xero identity server and must log in. Once successful, the `SignUpAsync` function will execute. It first uses the access token returned from the identity server to construct a XeroOAuth2Token. 
+The Authorize attribute enforces that the user must be authenticated with the specified XeroSignUp scheme. As we've configured this using the OpenID plugin in our startup, the unauthenticated user will be redirected to the Xero identity server and must log in. Once successful, the `SignUpAsync` function will execute. It first uses the access token returned from the identity server to construct a XeroOAuth2Token. 
 
 ```c#
 private async Task setTokenAsync()
